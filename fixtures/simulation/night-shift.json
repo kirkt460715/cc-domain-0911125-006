@@ -1,0 +1,423 @@
+{
+  "format": "sealvault-simulation-model",
+  "version": 1,
+  "mode": "historical_replay",
+  "source": {
+    "kind": "synthetic_workload",
+    "reference": "fixtures/simulation/night-shift.json#late-shift"
+  },
+  "notes": "Late shift scenario: receive and handoff staffed into the evening, review never staffed after 17:00 local time. Review sends work back to receive with an explicit rework assumption. No evidence content is consulted.",
+  "simulation_end": "2026-11-11T00:00:00Z",
+  "streams": {
+    "format": "sealvault-simulation-stream",
+    "version": 1,
+    "seed": "night-shift-2026-11-09",
+    "algorithm": "pcg64-via-python-random"
+  },
+  "calendars": {
+    "receive": {
+      "utc_offset": "+08:00",
+      "label": "接收窗口，工作日 09:00-17:00",
+      "shifts": [
+        {
+          "weekday": 0,
+          "start": "09:00",
+          "end": "17:00",
+          "headcount": 1,
+          "label": "周一白班"
+        },
+        {
+          "weekday": 1,
+          "start": "09:00",
+          "end": "17:00",
+          "headcount": 1,
+          "label": "周二白班"
+        }
+      ]
+    },
+    "review": {
+      "utc_offset": "+08:00",
+      "label": "复核窗口，工作日 09:00-17:00",
+      "shifts": [
+        {
+          "weekday": 0,
+          "start": "09:00",
+          "end": "17:00",
+          "headcount": 1,
+          "label": "周一白班"
+        },
+        {
+          "weekday": 1,
+          "start": "09:00",
+          "end": "17:00",
+          "headcount": 1,
+          "label": "周二白班"
+        }
+      ]
+    }
+  },
+  "routes": {
+    "format": "sealvault-simulation-routes",
+    "version": 1,
+    "routes": {
+      "full": {
+        "description": "接收 -> 复核 -> 交接；复核发现缺陷退回接收",
+        "steps": [
+          {
+            "stage_id": "receive",
+            "role": "receive",
+            "label": "接收登记"
+          },
+          {
+            "stage_id": "review",
+            "role": "review",
+            "label": "独立复核"
+          },
+          {
+            "stage_id": "handoff",
+            "role": "receive",
+            "label": "交接"
+          }
+        ],
+        "rework": [
+          {
+            "at_stage_id": "review",
+            "to_stage_id": "receive",
+            "probability": 0.5,
+            "max_rework_count": 2,
+            "assumption_id": "assume-review-rework-50pct",
+            "failure_reason": "复核发现登记缺陷，显式假设退回比例"
+          }
+        ]
+      }
+    }
+  },
+  "service": {
+    "format": "sealvault-simulation-service",
+    "version": 1,
+    "coverage": {
+      "observed_pairs": 10,
+      "open_operations": [
+        {
+          "operation_id": "op-night-open-review",
+          "stage_id": "review",
+          "started_at": "2026-11-10T08:00:00Z",
+          "closed_at_not_observed": true,
+          "route_id": "full"
+        },
+        {
+          "operation_id": "op-open-not-paired",
+          "stage_id": "receive",
+          "started_at": "2026-11-10T09:30:00Z",
+          "closed_at_not_observed": true,
+          "route_id": "full"
+        }
+      ],
+      "excluded_wait_seconds": 12600,
+      "note": "Two operations were still open at export and remain censored; their durations are not imputed. Paired start/end pairs exclude any handoff queue wait between stages.",
+      "pairs": [
+        {
+          "operation_id": "pair-receive-1",
+          "route_id": "full",
+          "stage_id": "receive",
+          "started_at": "2026-11-09T02:00:00Z",
+          "finished_at": "2026-11-09T02:50:00Z"
+        },
+        {
+          "operation_id": "pair-receive-2",
+          "route_id": "full",
+          "stage_id": "receive",
+          "started_at": "2026-11-09T02:50:00Z",
+          "finished_at": "2026-11-09T03:45:00Z"
+        },
+        {
+          "operation_id": "pair-receive-3",
+          "route_id": "full",
+          "stage_id": "receive",
+          "started_at": "2026-11-09T03:45:00Z",
+          "finished_at": "2026-11-09T04:45:00Z"
+        },
+        {
+          "operation_id": "pair-receive-4",
+          "route_id": "full",
+          "stage_id": "receive",
+          "started_at": "2026-11-09T04:45:00Z",
+          "finished_at": "2026-11-09T05:45:00Z"
+        },
+        {
+          "operation_id": "pair-receive-5",
+          "route_id": "full",
+          "stage_id": "receive",
+          "started_at": "2026-11-09T05:45:00Z",
+          "finished_at": "2026-11-09T06:50:00Z"
+        },
+        {
+          "operation_id": "pair-receive-6",
+          "route_id": "full",
+          "stage_id": "receive",
+          "started_at": "2026-11-09T06:50:00Z",
+          "finished_at": "2026-11-09T08:05:00Z"
+        },
+        {
+          "operation_id": "pair-review-1",
+          "route_id": "full",
+          "stage_id": "review",
+          "started_at": "2026-11-09T04:00:00Z",
+          "finished_at": "2026-11-09T04:25:00Z"
+        },
+        {
+          "operation_id": "pair-review-2",
+          "route_id": "full",
+          "stage_id": "review",
+          "started_at": "2026-11-09T05:00:00Z",
+          "finished_at": "2026-11-09T05:28:20Z"
+        },
+        {
+          "operation_id": "pair-review-3",
+          "route_id": "full",
+          "stage_id": "review",
+          "started_at": "2026-11-09T06:00:00Z",
+          "finished_at": "2026-11-09T06:31:40Z"
+        },
+        {
+          "operation_id": "pair-review-4",
+          "route_id": "full",
+          "stage_id": "review",
+          "started_at": "2026-11-09T07:00:00Z",
+          "finished_at": "2026-11-09T07:35:00Z"
+        }
+      ]
+    },
+    "durations": {
+      "full/receive": {
+        "kind": "lognormal",
+        "median_seconds": 3600,
+        "sigma": 0.139155,
+        "source": "paired_start_end",
+        "sample_count": 6
+      },
+      "full/review": {
+        "kind": "lognormal",
+        "median_seconds": 1800,
+        "sigma": 0.144856,
+        "source": "paired_start_end",
+        "sample_count": 4
+      },
+      "full/handoff": {
+        "kind": "fixed",
+        "seconds": 900,
+        "source": "explicit_assumption",
+        "assumption_id": "assume-handoff-15m"
+      }
+    }
+  },
+  "arrivals": {
+    "format": "sealvault-simulation-arrivals",
+    "version": 1,
+    "mode": "historical_replay",
+    "window": {
+      "observed_start": "2026-11-09T00:00:00Z",
+      "observed_end": "2026-11-11T00:00:00Z"
+    },
+    "arrivals": [
+      {
+        "case_id": "night-urgent-1",
+        "arrived_at": "2026-11-09T02:00:00Z",
+        "priority": "urgent",
+        "route": "full",
+        "evidence": "observed",
+        "label": "急件"
+      },
+      {
+        "case_id": "night-standard-1",
+        "arrived_at": "2026-11-09T05:30:00Z",
+        "priority": "standard",
+        "route": "full",
+        "evidence": "observed"
+      },
+      {
+        "case_id": "night-standard-2",
+        "arrived_at": "2026-11-09T09:00:00Z",
+        "priority": "standard",
+        "route": "full",
+        "evidence": "observed"
+      },
+      {
+        "case_id": "night-deferred-1",
+        "arrived_at": "2026-11-10T02:00:00Z",
+        "priority": "deferred",
+        "route": "full",
+        "evidence": "observed"
+      }
+    ]
+  },
+  "plans": [
+    {
+      "plan_id": "day-only",
+      "description": "只开白班；晚间接收和复核都无人",
+      "cross_shift": "interrupt",
+      "staffing": {
+        "receive": {
+          "source_role": "receive"
+        },
+        "review": {
+          "source_role": "review"
+        }
+      },
+      "priority_weights": {
+        "urgent": 3,
+        "standard": 2,
+        "deferred": 1
+      },
+      "service_target_seconds": {
+        "urgent": 14400,
+        "standard": 28800,
+        "deferred": 43200
+      },
+      "staff_cost_per_shift": {
+        "receive": 1.0,
+        "review": 1.0
+      }
+    },
+    {
+      "plan_id": "late-receive-no-review",
+      "description": "晚班只增加接收人，复核仍只到 17:00；观察晚班接收是否真的缓解瓶颈",
+      "cross_shift": "interrupt",
+      "staffing": {
+        "receive": {
+          "source_role": "receive",
+          "headcount_override": [
+            {
+              "weekday": 0,
+              "start": "09:00",
+              "end": "17:00",
+              "headcount": 1
+            },
+            {
+              "weekday": 0,
+              "start": "17:00",
+              "end": "23:00",
+              "headcount": 1
+            },
+            {
+              "weekday": 1,
+              "start": "09:00",
+              "end": "17:00",
+              "headcount": 1
+            },
+            {
+              "weekday": 1,
+              "start": "17:00",
+              "end": "23:00",
+              "headcount": 1
+            }
+          ],
+          "note": "晚班接收 17:00-23:00"
+        },
+        "review": {
+          "source_role": "review",
+          "note": "复核保持白班"
+        }
+      },
+      "priority_weights": {
+        "urgent": 3,
+        "standard": 2,
+        "deferred": 1
+      },
+      "service_target_seconds": {
+        "urgent": 14400,
+        "standard": 28800,
+        "deferred": 43200
+      },
+      "staff_cost_per_shift": {
+        "receive": 1.0,
+        "review": 1.0
+      }
+    },
+    {
+      "plan_id": "late-receive-and-review",
+      "description": "晚班增加接收人并配一名复核人，对照组",
+      "cross_shift": "interrupt",
+      "staffing": {
+        "receive": {
+          "source_role": "receive",
+          "headcount_override": [
+            {
+              "weekday": 0,
+              "start": "09:00",
+              "end": "17:00",
+              "headcount": 1
+            },
+            {
+              "weekday": 0,
+              "start": "17:00",
+              "end": "23:00",
+              "headcount": 1
+            },
+            {
+              "weekday": 1,
+              "start": "09:00",
+              "end": "17:00",
+              "headcount": 1
+            },
+            {
+              "weekday": 1,
+              "start": "17:00",
+              "end": "23:00",
+              "headcount": 1
+            }
+          ]
+        },
+        "review": {
+          "source_role": "review",
+          "headcount_override": [
+            {
+              "weekday": 0,
+              "start": "09:00",
+              "end": "17:00",
+              "headcount": 1
+            },
+            {
+              "weekday": 0,
+              "start": "17:00",
+              "end": "23:00",
+              "headcount": 1
+            },
+            {
+              "weekday": 1,
+              "start": "09:00",
+              "end": "17:00",
+              "headcount": 1
+            },
+            {
+              "weekday": 1,
+              "start": "17:00",
+              "end": "23:00",
+              "headcount": 1
+            }
+          ]
+        }
+      },
+      "priority_weights": {
+        "urgent": 3,
+        "standard": 2,
+        "deferred": 1
+      },
+      "service_target_seconds": {
+        "urgent": 14400,
+        "standard": 28800,
+        "deferred": 43200
+      },
+      "staff_cost_per_shift": {
+        "receive": 1.0,
+        "review": 1.0
+      }
+    }
+  ],
+  "personnel_budget": {
+    "person_shifts": 6,
+    "cost_ceiling": 6.0,
+    "assumption_id": "assume-budget-6-person-shifts",
+    "note": "主管给定的每两日人员预算：6 个人员班次、成本上限 6。晚班加接收不加复核将用满预算；加复核超预算。"
+  }
+}

@@ -5,6 +5,7 @@ from sealvault.codec import loads, canonical, VaultError, fail
 from sealvault.service import Vault
 from sealvault.transfer import archive
 from sealvault.inspect import checks, semantic
+from sealvault.sim import read_model, run, compare, explain, scenario_summary
 
 
 def read_json(filename):
@@ -41,6 +42,17 @@ def replay(vault, fixture):
     return {'ok': True, 'steps': results, 'integrity': integrity, 'semantic_cases': len(semantics['cases'])}
 
 
+def simulation_command(options):
+    model = read_model(read_json(options.model))
+    if options.command == 'describe':
+        return scenario_summary(model)
+    if options.command == 'simulate':
+        if options.case is not None:
+            return explain(model, options.plan, options.case, options.seed)
+        return run(model, options.plan, options.seed)
+    return compare(model, options.plans, options.repetitions, options.seed, options.basis)
+
+
 def parser():
     result = argparse.ArgumentParser(prog='sealvault', description='Offline content-addressed evidence custody vault')
     result.add_argument('--database', default=':memory:')
@@ -59,12 +71,28 @@ def parser():
     imports = commands.add_parser('archive-import-objects')
     imports.add_argument('source')
     imports.add_argument('actor')
+    replay_sim = commands.add_parser('simulate', help='run one staffing plan against a frozen model')
+    replay_sim.add_argument('model')
+    replay_sim.add_argument('--plan', required=True)
+    replay_sim.add_argument('--seed')
+    replay_sim.add_argument('--case', help='explain why one case did or did not reach service')
+    compare_sim = commands.add_parser('compare', help='compare staffing plans with shared arrivals and draws')
+    compare_sim.add_argument('model')
+    compare_sim.add_argument('--plan', action='append', dest='plans', default=[])
+    compare_sim.add_argument('--basis')
+    compare_sim.add_argument('--repetitions', type=int, default=20)
+    compare_sim.add_argument('--seed')
+    scenario = commands.add_parser('describe', help='describe model inputs, assumptions and evidence states')
+    scenario.add_argument('model')
     return result
 
 
 def main(argv=None):
     options = parser().parse_args(argv)
     try:
+        if options.command in ('simulate', 'compare', 'describe'):
+            print(canonical(simulation_command(options)))
+            return 0
         with Vault(options.database) as vault:
             if options.command == 'commands':
                 result = vault.commands()

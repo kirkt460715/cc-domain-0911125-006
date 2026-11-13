@@ -1,0 +1,192 @@
+{
+  "format": "sealvault-simulation-model",
+  "version": 1,
+  "mode": "historical_replay",
+  "source": {
+    "kind": "synthetic_workload",
+    "reference": "fixtures/simulation/queue-single.json#single-desk"
+  },
+  "notes": "Hand-checkable single-desk queue. One intake seat, three standard and one urgent case arriving at the same instant, every service 15 minutes. Two plans differ only in headcount.",
+  "simulation_end": "2026-11-09T04:00:00Z",
+  "streams": {
+    "format": "sealvault-simulation-stream",
+    "version": 1,
+    "seed": "queue-single-2026-11-09",
+    "algorithm": "pcg64-via-python-random"
+  },
+  "calendars": {
+    "intake": {
+      "utc_offset": "+08:00",
+      "label": "接收窗口 09:00-12:00 本地时间",
+      "shifts": [
+        {
+          "weekday": 0,
+          "start": "09:00",
+          "end": "12:00",
+          "headcount": 1,
+          "label": "周一上午"
+        }
+      ]
+    }
+  },
+  "routes": {
+    "format": "sealvault-simulation-routes",
+    "version": 1,
+    "routes": {
+      "receive-only": {
+        "description": "单环节接收路线，用于手算核对",
+        "steps": [
+          {
+            "stage_id": "receive",
+            "role": "intake",
+            "label": "接收登记"
+          }
+        ],
+        "rework": []
+      }
+    }
+  },
+  "service": {
+    "format": "sealvault-simulation-service",
+    "version": 1,
+    "coverage": {
+      "observed_pairs": 4,
+      "open_operations": [
+        {
+          "operation_id": "op-open-not-paired",
+          "stage_id": "receive",
+          "started_at": "2026-11-09T03:45:00Z",
+          "closed_at_not_observed": true,
+          "route_id": "receive-only"
+        }
+      ],
+      "excluded_wait_seconds": 5400,
+      "note": "Durations come from four complete start/end pairs; one operation is still open and is kept as censored, not zero-filled. Handoff queue wait is excluded from service time.",
+      "pairs": [
+        {
+          "operation_id": "op-single-01",
+          "route_id": "receive-only",
+          "stage_id": "receive",
+          "started_at": "2026-11-09T01:00:00Z",
+          "finished_at": "2026-11-09T01:15:00Z"
+        },
+        {
+          "operation_id": "op-single-02",
+          "route_id": "receive-only",
+          "stage_id": "receive",
+          "started_at": "2026-11-09T01:15:00Z",
+          "finished_at": "2026-11-09T01:30:00Z"
+        },
+        {
+          "operation_id": "op-single-03",
+          "route_id": "receive-only",
+          "stage_id": "receive",
+          "started_at": "2026-11-09T01:30:00Z",
+          "finished_at": "2026-11-09T01:45:00Z"
+        },
+        {
+          "operation_id": "op-single-04",
+          "route_id": "receive-only",
+          "stage_id": "receive",
+          "started_at": "2026-11-09T03:15:00Z",
+          "finished_at": "2026-11-09T03:30:00Z"
+        }
+      ]
+    },
+    "durations": {
+      "receive-only/receive": {
+        "kind": "fixed",
+        "seconds": 900,
+        "source": "paired_start_end",
+        "sample_count": 4
+      }
+    }
+  },
+  "arrivals": {
+    "format": "sealvault-simulation-arrivals",
+    "version": 1,
+    "mode": "historical_replay",
+    "window": {
+      "observed_start": "2026-11-09T00:00:00Z",
+      "observed_end": "2026-11-09T04:00:00Z"
+    },
+    "arrivals": [
+      {
+        "case_id": "case-urgent-1",
+        "arrived_at": "2026-11-09T01:00:00Z",
+        "priority": "urgent",
+        "route": "receive-only",
+        "evidence": "observed",
+        "label": "急件"
+      },
+      {
+        "case_id": "case-standard-1",
+        "arrived_at": "2026-11-09T01:00:00Z",
+        "priority": "standard",
+        "route": "receive-only",
+        "evidence": "observed"
+      },
+      {
+        "case_id": "case-standard-2",
+        "arrived_at": "2026-11-09T01:00:00Z",
+        "priority": "standard",
+        "route": "receive-only",
+        "evidence": "observed"
+      },
+      {
+        "case_id": "case-deferred-1",
+        "arrived_at": "2026-11-09T01:00:00Z",
+        "priority": "deferred",
+        "route": "receive-only",
+        "evidence": "observed"
+      }
+    ]
+  },
+  "plans": [
+    {
+      "plan_id": "one-seat",
+      "description": "单席位接收，同一时刻按优先级排队",
+      "cross_shift": "interrupt",
+      "staffing": {
+        "intake": {
+          "source_role": "intake",
+          "note": "单席位"
+        }
+      },
+      "priority_weights": {
+        "urgent": 3,
+        "standard": 2,
+        "deferred": 1
+      },
+      "service_target_seconds": {
+        "urgent": 1800,
+        "standard": 3600,
+        "deferred": 5400
+      },
+      "staff_cost_per_shift": 1.0
+    },
+    {
+      "plan_id": "two-seats",
+      "description": "两个接收席位，其他条件不变",
+      "cross_shift": "interrupt",
+      "staffing": {
+        "intake": {
+          "source_role": "intake",
+          "headcount_multiplier": 2,
+          "note": "加开一个席位"
+        }
+      },
+      "priority_weights": {
+        "urgent": 3,
+        "standard": 2,
+        "deferred": 1
+      },
+      "service_target_seconds": {
+        "urgent": 1800,
+        "standard": 3600,
+        "deferred": 5400
+      },
+      "staff_cost_per_shift": 1.0
+    }
+  ]
+}
